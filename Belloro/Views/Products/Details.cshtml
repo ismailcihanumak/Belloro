@@ -1,0 +1,465 @@
+﻿@model Belloro.Models.Product
+
+@{
+    ViewData["Title"] = "Ürün Detayları";
+    Layout = "_adminlayout";
+}
+
+<div class="container-fluid p-0">
+    <div class="text-center mb-4">
+        <h1 class="details-title mb-3">Ürün Detayları</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Products")" class="breadcrumb-link">
+                        <i class="bi bi-list-ul me-1"></i>Ürün Listesi
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Detaylar</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="details-form-container">
+                <div class="row">
+                    <!-- Sol taraf - Ürün bilgileri -->
+                    <div class="col-md-7">
+                        <div class="product-info-section">
+                            <div class="info-group mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-tag me-2"></i>Ürün Adı
+                                </label>
+                                <div class="info-value">
+                                    @(Model?.Name ?? "")
+                                </div>
+                            </div>
+                            <div class="info-group mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-card-text me-2"></i>Açıklama
+                                </label>
+                                <div class="info-value description-text">
+                                    @(Model?.Description ?? "")
+                                </div>
+                            </div>
+                            <div class="info-group mb-4">
+                                <label class="info-label">
+                                    <i class="bi bi-folder me-2"></i>Kategori
+                                </label>
+                                <div class="info-value">
+                                    @(Model?.Category?.Name ?? "Kategori Yok")
+                                </div>
+                            </div>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-6">
+                                    <div class="info-group mb-0">
+                                        <label class="info-label">
+                                            <i class="bi bi-currency-dollar me-2"></i>Fiyat
+                                        </label>
+                                        <div class="info-value price-value">
+                                            <span style="font-size:1.1em;font-weight:600;color:#28a745;">
+                                                @string.Format("₺{0:N0}", Model?.Price ?? 0)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="info-group mb-0">
+                                        <label class="info-label">
+                                            <i class="bi bi-graph-up me-2"></i>Satış Sayısı
+                                        </label>
+                                        <div class="info-value sales-value">
+                                            @(Model?.SalesCount ?? 0)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="features-section mb-4 mt-4">
+                                <label class="info-label mb-3">
+                                    <i class="bi bi-star me-2"></i>Özellikler
+                                </label>
+                                <div class="features-container">
+                                    <div class="feature-badge @(Model?.IsFeatured == true ? "active" : "")">
+                                        <i class="bi bi-star me-2"></i>Öne Çıkan Ürün
+                                        @if (Model?.IsFeatured == true)
+                                        {
+                                            <i class="bi bi-check-circle-fill ms-2"></i>
+                                        }
+                                    </div>
+                                    <div class="feature-badge @(Model?.IsNew == true ? "active" : "")">
+                                        <i class="bi bi-badge-wc me-2"></i>Yeni Ürün
+                                        @if (Model?.IsNew == true)
+                                        {
+                                            <i class="bi bi-check-circle-fill ms-2"></i>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Sağ taraf - Resim görüntüleme - KARE BOYUT, en üstte hizalı -->
+                    <div class="col-md-5 d-flex align-items-start justify-content-center">
+                        <div class="image-display-section">
+                            <label class="info-label text-center d-block mb-3">
+                                <i class="bi bi-image me-2"></i>Ürün Görseli
+                            </label>
+                            <div class="image-display-container-square">
+                                @if (Model != null && !string.IsNullOrEmpty(Model.ImageUrl))
+                                {
+                                    <img src="@Model.ImageUrl" alt="@Model.Name" class="product-image-square" style="cursor:pointer;" data-bs-toggle="modal" data-bs-target="#imageModal" />
+                                }
+                                else
+                                {
+                                    <div class="no-image-display-square">
+                                        <i class="bi bi-image"></i>
+                                        <span>Resim Bulunmuyor</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions text-center mt-4 pt-4">
+                    @if (Model != null && Model.ProductId > 0)
+                    {
+                        <!-- DÜZENLEME: Düzenle butonu doğrudan Edit'e değil, SetEditSession'a yönlendirildi! -->
+                        <a asp-action="SetEditSession" asp-route-id="@Model.ProductId" class="btn btn-warning btn-modern me-3">
+                            <i class="bi bi-pencil-square me-2"></i>Düzenle
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="btn btn-warning btn-modern me-3 disabled" tabindex="-1" aria-disabled="true">
+                            <i class="bi bi-pencil-square me-2"></i>Düzenle
+                        </a>
+                    }
+                    <a asp-action="Index" class="btn btn-secondary btn-modern">
+                        <i class="bi bi-arrow-left me-2"></i>Listeye Dön
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model != null && !string.IsNullOrEmpty(Model.ImageUrl))
+{
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageModalLabel">@Model.Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="@Model.ImageUrl" alt="@Model.Name" class="img-fluid" style="max-height: 70vh;" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        /* --- Products/Details.cshtml'e Özgü Alanlar --- */
+        .details-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-theme .details-title {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .details-title {
+            color: #ffc107;
+        }
+
+        .details-form-container {
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        body.light-theme .details-form-container {
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+        }
+
+        body:not(.light-theme) .details-form-container {
+            background-color: #2c2c2c;
+            border: 1px solid #404040;
+        }
+
+        .info-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            color: #212529;
+        }
+
+        body:not(.light-theme) .info-label {
+            color: #ffc107;
+        }
+
+        .info-value {
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            font-size: 1rem;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+
+        body:not(.light-theme) .info-value {
+            background-color: #1a1a1a;
+            border-color: #404040;
+            color: #fff;
+        }
+
+        .description-text {
+            min-height: 120px;
+            align-items: flex-start;
+        }
+
+        .price-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #28a745;
+        }
+
+        .sales-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #17a2b8;
+        }
+
+        .features-section {
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        body:not(.light-theme) .features-section {
+            background-color: #1a1a1a;
+            border-color: #404040;
+        }
+
+        .features-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .feature-badge {
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            border: 2px solid #dee2e6;
+            opacity: 0.5;
+            background-color: #fff;
+            color: #6c757d;
+            transition: all 0.2s;
+        }
+
+            .feature-badge.active {
+                opacity: 1;
+                transform: scale(1.05);
+                background-color: #ffc107;
+                border-color: #ffc107;
+                color: #212529;
+                box-shadow: 0 4px 12px rgba(255,193,7,0.3);
+            }
+
+        .image-display-section {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .image-display-container-square {
+            position: relative;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            width: 250px;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+
+        body:not(.light-theme) .image-display-container-square {
+            border: 2px solid #404040;
+            background-color: #1a1a1a;
+        }
+
+        .product-image-square {
+            max-width: 100%;
+            max-height: 210px;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+        }
+
+        .image-display-container-square:hover .product-image-square {
+            transform: scale(1.02);
+        }
+
+        .no-image-display-square {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0.6;
+        }
+
+            .no-image-display-square i {
+                font-size: 3rem;
+                margin-bottom: 10px;
+            }
+
+            .no-image-display-square span {
+                font-size: 0.9rem;
+            }
+        /* --- Genel Modern Tasarım (Category/Create.cshtml'den) --- */
+        .breadcrumb {
+            background: none;
+            padding: 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-link {
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        body.light-theme .breadcrumb-link {
+            color: #007bff;
+        }
+
+            body.light-theme .breadcrumb-link:hover {
+                color: #ffc107;
+            }
+
+        body:not(.light-theme) .breadcrumb-link {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) .breadcrumb-link:hover {
+                color: #ffffff;
+            }
+
+        body.light-theme .breadcrumb-item.active {
+            color: #6c757d;
+        }
+
+        body:not(.light-theme) .breadcrumb-item.active {
+            color: #adb5bd;
+        }
+        /* Modern butonlar */
+        .btn-modern {
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .btn-modern::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn-modern:hover::before {
+                left: 100%;
+            }
+
+        .btn-warning.btn-modern {
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+
+            .btn-warning.btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+            }
+
+        .btn-secondary.btn-modern {
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+            .btn-secondary.btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+            }
+        /* Form actions */
+        .form-actions {
+            border-top: 2px solid;
+            margin-top: 30px;
+            padding-top: 20px;
+        }
+
+        body.light-theme .form-actions {
+            border-color: #e9ecef;
+        }
+
+        body:not(.light-theme) .form-actions {
+            border-color: #404040;
+        }
+        /* Responsive Tasarım */
+        @@media (max-width: 768px) {
+            .details-title
+
+        {
+            font-size: 2rem;
+        }
+
+        .details-form-container {
+            padding: 20px;
+        }
+
+        .btn-modern {
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+
+        .image-display-container-square {
+            width: 150px;
+            height: 150px;
+            padding: 10px;
+        }
+
+        .product-image-square {
+            max-height: 120px;
+        }
+
+        .features-section {
+            padding: 10px;
+        }
+
+        }
+    </style>
+}

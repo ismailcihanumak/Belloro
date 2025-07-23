@@ -1,0 +1,525 @@
+﻿@model Belloro.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Kontrol Paneli";
+    Layout = "~/Views/Shared/_adminlayout.cshtml";
+    var userName = "ismailcihanumak";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+
+<div class="dashboard-main-container">
+    <div class="dashboard-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-start">
+                <h1 class="dashboard-title mb-2">
+                    <i class="bi bi-speedometer2 me-2"></i>Kontrol Paneli
+                </h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="#">Ana Sayfa</a></li>
+                        <li class="breadcrumb-item active">Kontrol Paneli</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="current-time">
+                    <i class="bi bi-clock me-2"></i>
+                    <span id="currentDateTime">2025-07-21 13:14:20</span>
+                </div>
+                <div class="current-user mt-1">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <span>@userName</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Stats Cards -->
+    <div class="row mb-4 g-3">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-primary">
+                <div class="stat-content">
+                    <h3>@Model.TotalProducts</h3>
+                    <p>Toplam Ürün</p>
+                </div>
+                <i class="bi bi-box-seam stat-icon"></i>
+                <div class="stat-footer">
+                    <a href="@Url.Action("Index", "Products")" class="text-white">
+                        <small>Detayları Gör <i class="bi bi-arrow-right"></i></small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-success">
+                <div class="stat-content">
+                    <h3>@Model.TotalCategories</h3>
+                    <p>Toplam Kategori</p>
+                </div>
+                <i class="bi bi-folder stat-icon"></i>
+                <div class="stat-footer">
+                    <a href="@Url.Action("Index", "Category")" class="text-white">
+                        <small>Detayları Gör <i class="bi bi-arrow-right"></i></small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-warning">
+                <div class="stat-content">
+                    <h3>@Model.TotalOrders</h3>
+                    <p>Toplam Sipariş</p>
+                </div>
+                <i class="bi bi-cart-check stat-icon"></i>
+                <div class="stat-footer">
+                    <a href="#" class="text-white">
+                        <small>Detayları Gör <i class="bi bi-arrow-right"></i></small>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-info">
+                <div class="stat-content">
+                    <h3>₺@((Model.RecentOrders?.Sum(o => o.Amount) ?? 0).ToString("N0"))</h3>
+                    <p>Toplam Satış</p>
+                </div>
+                <i class="bi bi-graph-up-arrow stat-icon"></i>
+                <div class="stat-footer">
+                    <a href="#" class="text-white">
+                        <small>Raporları Gör <i class="bi bi-arrow-right"></i></small>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Main Body (Tables & Top Products) -->
+    <div class="row g-4">
+        <!-- Left: Recent Orders Table -->
+        <div class="col-lg-8 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Son Siparişler
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-warning">Tümünü Gör</a>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentOrders != null && Model.RecentOrders.Any())
+                    {
+                        <div class="dashboard-table-responsive">
+                            <table class="table belloro-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Sipariş No</th>
+                                        <th>Müşteri</th>
+                                        <th>Ürün</th>
+                                        <th>Kategori</th>
+                                        <th>Tutar</th>
+                                        <th>Tarih</th>
+                                        <th>Durum</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model.RecentOrders)
+                                    {
+                                        <tr>
+                                            <td><strong class="text-primary">@order.OrderNumber</strong></td>
+                                            <td>@order.CustomerName</td>
+                                            <td>@order.ProductName</td>
+                                            <td>
+                                                <span class="badge bg-secondary">@order.CategoryName</span>
+                                            </td>
+                                            <td>
+                                                <div class="fiyat-ortala">
+                                                    <span class="fiyat-rakam">@order.Amount.ToString("N0")</span>
+                                                    <span class="fiyat-tl">₺</span>
+                                                </div>
+                                            </td>
+                                            <td>@order.OrderDate.ToString("dd.MM.yyyy")</td>
+                                            <td>
+                                                @if (order.Status == "Tamamlandı")
+                                                {
+                                                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>@order.Status</span>
+                                                }
+                                                else if (order.Status == "İşlemde")
+                                                {
+                                                    <span class="badge bg-warning text-dark"><i class="bi bi-clock me-1"></i>@order.Status</span>
+                                                }
+                                                else if (order.Status == "Kargoda")
+                                                {
+                                                    <span class="badge bg-info text-dark"><i class="bi bi-truck me-1"></i>@order.Status</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary"><i class="bi bi-hourglass me-1"></i>@order.Status</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button class="btn btn-sm btn-outline-info" title="Detay">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-warning" title="Düzenle">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state text-center py-5">
+                            <i class="bi bi-cart-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">Henüz sipariş bulunmuyor</p>
+                            <button class="btn btn-primary">İlk Siparişi Oluştur</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <!-- Right: Top Selling Products -->
+        <div class="col-lg-4 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-trophy me-2"></i>En Çok Satan Ürünler
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-warning">Detaylar</a>
+                </div>
+                <div class="card-body">
+                    @if (Model.TopSellingProducts != null && Model.TopSellingProducts.Any())
+                    {
+                        @foreach (var product in Model.TopSellingProducts.Take(5))
+                        {
+                            <div class="product-item d-flex align-items-center mb-3 p-2 rounded border">
+                                <div class="product-image me-3">
+                                    @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                    {
+                                        <img src="@product.ImageUrl" alt="@product.ProductName" class="rounded" style="width: 50px; height: 50px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="no-image d-flex align-items-center justify-content-center rounded" style="width: 50px; height: 50px; background: #f8f9fa; color: #6c757d;">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="product-info flex-grow-1">
+                                    <h6 class="mb-1 text-truncate">@product.ProductName</h6>
+                                    <small class="text-muted">@product.CategoryName</small>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-box me-1"></i>@product.SalesCount adet
+                                        </span>
+                                        <strong class="text-success">₺@product.Price.ToString("N0")</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-state text-center py-4">
+                            <i class="bi bi-box display-4 text-muted"></i>
+                            <p class="text-muted mt-3 mb-0">Henüz satış verisi yok</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Canlı saat güncelleme
+        function updateDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const localTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            const element = document.getElementById('currentDateTime');
+            if (element) element.textContent = localTime;
+        }
+        setInterval(updateDateTime, 1000);
+        document.addEventListener('DOMContentLoaded', updateDateTime);
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .dashboard-main-container {
+            padding: 20px;
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+        }
+
+        .dashboard-title {
+            font-weight: 700;
+            font-size: 2.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .dashboard-header .current-time,
+        .dashboard-header .current-user {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bs-primary), #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 150px;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+            }
+
+            .stat-card.bg-success {
+                background: linear-gradient(135deg, var(--bs-success), #0d5345);
+            }
+
+            .stat-card.bg-warning {
+                background: linear-gradient(135deg, var(--bs-warning), #b8860b);
+            }
+
+            .stat-card.bg-info {
+                background: linear-gradient(135deg, var(--bs-info), #087990);
+            }
+
+        .stat-content h3 {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-content p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .stat-icon {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 2.5rem;
+            opacity: 0.2;
+        }
+
+        .stat-footer {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+            .stat-footer a {
+                text-decoration: none;
+                opacity: 0.8;
+                transition: opacity 0.2s;
+            }
+
+                .stat-footer a:hover {
+                    opacity: 1;
+                }
+
+        .dashboard-card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            background: var(--bs-body-bg, #fff);
+        }
+
+            .dashboard-card .card-header {
+                background: #f8f9fa;
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 10px 10px 0 0;
+            }
+
+        .dashboard-table-responsive {
+            font-size: 0.98rem;
+        }
+
+        .belloro-table {
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+        }
+
+            .belloro-table th, .belloro-table td {
+                text-align: center;
+                padding: 14px 8px;
+                vertical-align: middle;
+            }
+
+            .belloro-table thead th {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                color: #212529;
+                border-bottom: 3px solid #ffc107;
+                font-weight: 600;
+                font-size: 0.9rem;
+                text-transform: uppercase;
+            }
+
+            .belloro-table tbody tr {
+                transition: all 0.3s ease;
+            }
+
+                .belloro-table tbody tr:hover {
+                    background-color: rgba(255, 193, 7, 0.08);
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                }
+
+        .fiyat-ortala {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fiyat-rakam {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 1.06rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            margin-top: 4px;
+            color: #212529;
+            transition: color 0.2s;
+        }
+
+        body:not(.light-theme) .fiyat-rakam {
+            color: #FFD700 !important;
+            text-shadow: 0 0 4px #222;
+        }
+
+        .fiyat-tl {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 700;
+            font-size: 1.04rem;
+            color: #ffc107;
+            margin-top: 0;
+            line-height: 1;
+            letter-spacing: 0.09em;
+            transition: color 0.2s;
+        }
+
+        body:not(.light-theme) .fiyat-tl {
+            color: #FFD700 !important;
+            text-shadow: 0 0 4px #222;
+        }
+
+        .empty-state {
+            color: #6c757d;
+        }
+
+        .product-item {
+            background: var(--bs-body-bg, #fff);
+        }
+
+            .product-item:hover {
+                background-color: #f8f9fa;
+                transform: translateX(2px);
+                transition: all 0.2s ease;
+            }
+
+        .product-image img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+        }
+
+        .no-image {
+            width: 50px;
+            height: 50px;
+            background: #f8f9fa;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body:not(.light-theme) .dashboard-main-container,
+        body:not(.light-theme) .dashboard-card,
+        body:not(.light-theme) .belloro-table,
+        body:not(.light-theme) .stat-card {
+            background: #23272b !important;
+            color: #fff !important;
+        }
+
+            body:not(.light-theme) .dashboard-card .card-header,
+            body:not(.light-theme) .belloro-table thead th {
+                background: linear-gradient(135deg, #23272b 0%, #343a40 100%) !important;
+                color: #ffc107 !important;
+                border-bottom: 3px solid #ffc107 !important;
+            }
+
+        body:not(.light-theme) .empty-state {
+            color: #adb5bd;
+        }
+
+        body:not(.light-theme) .product-item {
+            background: #23272b;
+        }
+
+        body:not(.light-theme) .no-image {
+            background: #343a40;
+            color: #adb5bd;
+        }
+
+        body:not(.light-theme) .stat-footer a {
+            color: #fff;
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #212529;
+        }
+
+            .btn-warning:hover {
+                background-color: #e0a800;
+                border-color: #d39e00;
+            }
+
+        .btn-outline-info {
+            border-color: #17a2b8;
+            color: #17a2b8;
+        }
+
+            .btn-outline-info:hover {
+                background: #17a2b8;
+                color: #fff;
+            }
+
+        .btn-outline-warning {
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+
+            .btn-outline-warning:hover {
+                background: #ffc107;
+                color: #212529;
+            }
+    </style>
+}

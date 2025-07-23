@@ -1,0 +1,779 @@
+﻿@model Belloro.Models.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Kontrol Paneli";
+    Layout = "~/Views/Shared/_adminlayout.cshtml";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+
+<div class="container-fluid p-0">
+    <div class="text-center mb-4">
+        <div class="dashboard-header-top">
+            <span class="current-time">
+                <i class="bi bi-clock me-2"></i>
+                <span id="currentDateTime"></span>
+            </span>
+            <span class="current-user ms-4">
+                <i class="bi bi-person-circle me-2"></i>
+                <span>@(User.Identity?.Name ?? "Yönetici")</span>
+            </span>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-primary">
+                <div class="stat-content">
+                    <h3>@Model.TotalProducts</h3>
+                    <p>Toplam Ürün</p>
+                </div>
+                <i class="bi bi-box-seam stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-success">
+                <div class="stat-content">
+                    <h3>@Model.TotalCategories</h3>
+                    <p>Toplam Kategori</p>
+                </div>
+                <i class="bi bi-folder stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-warning">
+                <div class="stat-content">
+                    <h3>@Model.TotalOrders</h3>
+                    <p>Toplam Sipariş</p>
+                </div>
+                <i class="bi bi-cart-check stat-icon"></i>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="stat-card bg-danger">
+                <div class="stat-content">
+                    <h3>₺@((Model.RecentOrders?.Sum(o => o.Amount) ?? 0).ToString("N0"))</h3>
+                    <p>Toplam Satış</p>
+                </div>
+                <i class="bi bi-graph-up-arrow stat-icon"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Son Siparişler -->
+        <div class="col-lg-8 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header text-center">
+                    <h5 class="card-title mb-0 d-inline-block">
+                        <i class="bi bi-clock-history me-2"></i>Son Siparişler
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentOrders != null && Model.RecentOrders.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table belloro-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Sipariş No</th>
+                                        <th>Müşteri</th>
+                                        <th>Ürün</th>
+                                        <th>Tutar</th>
+                                        <th>Durum</th>
+                                        <th>Tarih</th>
+                                        <th>İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model.RecentOrders)
+                                    {
+                                        <tr>
+                                            <td><strong>@order.OrderNumber</strong></td>
+                                            <td>@order.CustomerName</td>
+                                            <td>@order.ProductName</td>
+                                            <td>
+                                                <div class="fiyat-ortala">
+                                                    <span class="fiyat-rakam">@order.Amount.ToString("N0")</span>
+                                                    <span class="fiyat-tl">₺</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (order.Status == "Tamamlandı")
+                                                {
+                                                    <span class="badge bg-success">@order.Status</span>
+                                                }
+                                                else if (order.Status == "İşlemde")
+                                                {
+                                                    <span class="badge bg-warning text-dark">@order.Status</span>
+                                                }
+                                                else if (order.Status == "Kargoda")
+                                                {
+                                                    <span class="badge bg-info text-dark">@order.Status</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@order.Status</span>
+                                                }
+                                            </td>
+                                            <td>@order.OrderDate.ToString("dd.MM.yyyy")</td>
+                                            <td>
+                                                <div class="order-actions d-flex justify-content-center gap-2">
+                                                    <a href="@Url.Action("Edit", "Orders", new { orderNumber = order.OrderNumber })" class="btn-action edit" title="Düzenle"><i class="bi bi-pencil-square"></i></a>
+                                                    <a href="@Url.Action("Details", "Orders", new { orderNumber = order.OrderNumber })" class="btn-action details" title="Detay"><i class="bi bi-eye"></i></a>
+                                                    <a href="@Url.Action("Delete", "Orders", new { orderNumber = order.OrderNumber })" class="btn-action delete" title="Sil"><i class="bi bi-trash"></i></a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state text-center py-5">
+                            <i class="bi bi-cart-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">Henüz sipariş bulunmuyor</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- En Çok Satan Ürünler -->
+        <div class="col-lg-4 mb-4">
+            <div class="card dashboard-card">
+                <div class="card-header text-center">
+                    <h5 class="card-title mb-0 d-inline-block">
+                        <i class="bi bi-trophy me-2"></i>En Çok Satan Ürünler
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.TopSellingProducts != null && Model.TopSellingProducts.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table belloro-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Ürün Adı</th>
+                                        <th>Satış</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.TopSellingProducts)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="top-product-img me-3 flex-shrink-0">
+                                                        @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                                        {
+                                                            <img src="@product.ImageUrl" alt="@product.ProductName" class="rounded">
+                                                        }
+                                                        else
+                                                        {
+                                                            <div class="no-image d-flex align-items-center justify-content-center rounded">
+                                                                <i class="bi bi-image"></i>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                    <div class="top-product-info text-start" style="text-align:left;">
+                                                        <h6 class="mb-1 top-product-title" style="text-align:left;">@product.ProductName</h6>
+                                                        <small class="text-muted top-product-category" style="display:block;text-align:left;">@product.CategoryName</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="sales-info text-center">
+                                                    <div class="fiyat-ortala">
+                                                        <span class="fiyat-rakam">@product.Price.ToString("N0")</span>
+                                                        <span class="fiyat-tl">₺</span>
+                                                    </div>
+                                                    <span class="badge bg-primary sales-count mt-2">
+                                                        <i class="bi bi-box me-1"></i>@product.SalesCount Adet
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state text-center py-4">
+                            <i class="bi bi-box display-4 text-muted"></i>
+                            <p class="text-muted mt-3 mb-0">Henüz satış verisi yok</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const localTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            const element = document.getElementById('currentDateTime');
+            if (element) element.textContent = localTime;
+        }
+        setInterval(updateDateTime, 1000);
+        document.addEventListener('DOMContentLoaded', updateDateTime);
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        .products-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .dashboard-header-top {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .current-time, .current-user {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bs-primary), #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 0 !important;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+            }
+
+            .stat-card.bg-success {
+                background: linear-gradient(135deg, var(--bs-success), #0d5345);
+            }
+
+            .stat-card.bg-warning {
+                background: linear-gradient(135deg, var(--bs-warning), #b8860b);
+            }
+
+            .stat-card.bg-info {
+                background: linear-gradient(135deg, var(--bs-info), #087990);
+            }
+
+        .stat-content h3 {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-content p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .stat-icon {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 2.5rem;
+            opacity: 0.2;
+        }
+
+        .stat-card.stat-sales {
+            background: linear-gradient(135deg, #dc3545 60%, #ff6b81 100%);
+        }
+
+        body:not(.light-theme) .stat-card {
+            border: 1px solid #404040;
+        }
+
+            body:not(.light-theme) .stat-card.bg-primary,
+            body:not(.light-theme) .stat-card.bg-success,
+            body:not(.light-theme) .stat-card.bg-warning,
+            body:not(.light-theme) .stat-card.bg-danger {
+                background: linear-gradient(135deg, #2a2a2a, #333333) !important;
+                border: 2px solid #FFD700;
+            }
+
+        .dashboard-card {
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            background: var(--bs-body-bg, #fff);
+        }
+
+            .dashboard-card .card-header {
+                background: #f8f9fa;
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 10px 10px 0 0;
+                text-align: center;
+            }
+
+            .dashboard-card .card-title {
+                font-size: 1.1rem;
+                margin-bottom: 0;
+                text-align: center;
+                width: 100%;
+                display: inline-block;
+            }
+
+        .belloro-table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            table-layout: fixed;
+        }
+
+            .belloro-table th, .belloro-table td {
+                text-align: center;
+                padding: 14px 8px;
+                vertical-align: middle;
+            }
+
+            .belloro-table thead th {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                color: #212529;
+                border-bottom: 3px solid #ffc107;
+                font-weight: 600;
+                font-size: 0.9rem;
+                text-transform: uppercase;
+            }
+
+            .belloro-table tbody tr {
+                transition: all 0.3s ease;
+            }
+
+                .belloro-table tbody tr:hover {
+                    background-color: rgba(255, 193, 7, 0.08);
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+                }
+
+        .order-actions {
+            display: flex;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            border-radius: 6px;
+            border: none;
+            background: transparent;
+            font-size: 1.2rem;
+            color: #666;
+            transition: background 0.2s, color 0.2s;
+            box-shadow: none;
+            outline: none;
+        }
+
+            .btn-action.edit:hover, .btn-action.edit:focus {
+                background: #e2f0fb;
+                color: #0d6efd;
+            }
+
+            .btn-action.details:hover, .btn-action.details:focus {
+                background: #e0fbe2;
+                color: #198754;
+            }
+
+            .btn-action.delete:hover, .btn-action.delete:focus {
+                background: #fae2e2;
+                color: #dc3545;
+            }
+
+        .fiyat-ortala {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .fiyat-rakam {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 1.06rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            margin-top: 4px;
+            color: #212529;
+            transition: color 0.2s;
+        }
+
+        .fiyat-tl {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 700;
+            font-size: 1.04rem;
+            color: #ffc107;
+            margin-top: 0;
+            line-height: 1;
+            letter-spacing: 0.09em;
+            transition: color 0.2s;
+        }
+
+        .empty-state {
+            color: #6c757d;
+        }
+
+        .top-products-list {
+            max-height: 480px;
+            overflow-y: auto;
+        }
+
+        .top-product-item {
+            background: var(--bs-body-bg, #fff);
+            min-width: 0;
+            border: 1px solid #f1f1f1;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+
+            .top-product-item:hover {
+                background-color: #f8f9fa;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            }
+
+        .top-product-img {
+            width: 48px;
+            height: 48px;
+        }
+
+            .top-product-img img, .no-image {
+                width: 48px;
+                height: 48px;
+                object-fit: cover;
+            }
+
+        /* Ürün adı ve kategori adı sola dayalı */
+        .top-product-info {
+            min-width: 0;
+            text-align: left !important;
+        }
+
+        .top-product-title {
+            font-size: 1rem;
+            font-weight: 600;
+            word-wrap: break-word;
+            white-space: normal;
+            text-align: left !important;
+        }
+
+        .top-product-category {
+            font-size: 0.85rem;
+            word-wrap: break-word;
+            white-space: normal;
+            display: block;
+            text-align: left !important;
+        }
+
+        .sales-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sales-count {
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: linear-gradient(135deg, #0d6efd, #1e90ff);
+            color: #fff;
+            padding: 0.3rem 0.6rem;
+        }
+
+        .price {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+        }
+
+        .no-image {
+            background: #f8f9fa;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .dashboard-header-top {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+            background: transparent;
+            padding: 0 34px 0 0;
+            margin-top: 12px;
+        }
+
+        .dashboard-header-top-content {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .header-icon {
+            font-size: 1.22rem;
+            display: flex;
+            align-items: center;
+            opacity: 0.98;
+        }
+
+        .header-date, .header-time, .header-username, .header-icon {
+            font-size: 1.08rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: #6c757d;
+            transition: color 0.2s;
+        }
+
+        .header-date {
+            margin-left: 5px;
+            margin-right: 7px;
+        }
+
+        .header-time {
+            margin-right: 18px;
+        }
+
+        .header-username {
+            margin-left: 6px;
+            font-weight: 700;
+        }
+
+        /* ===============================================
+                           KARANLIK MOD - RESİMDEKİ TABLO TASARIMI
+                           =============================================== */
+
+        body:not(.light-theme) {
+            background: #1a1a1a !important;
+            color: #FFD700 !important;
+        }
+
+            /* Karanlık mod tablo stilleri - resimdeki tasarıma uygun */
+            body:not(.light-theme) .belloro-table {
+                background: #2a2a2a !important;
+                color: #FFD700 !important;
+                border: 1px solid #404040 !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+            }
+
+                body:not(.light-theme) .belloro-table thead th {
+                    background: linear-gradient(135deg, #333333 0%, #2a2a2a 100%) !important;
+                    color: #FFD700 !important;
+                    border-bottom: 2px solid #FFD700 !important;
+                    font-weight: 700;
+                    font-size: 0.9rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    padding: 16px 12px;
+                }
+
+                body:not(.light-theme) .belloro-table tbody td {
+                    background: #2a2a2a !important;
+                    color: #FFD700 !important;
+                    border-bottom: 1px solid #404040 !important;
+                    padding: 16px 12px;
+                    font-weight: 500;
+                }
+
+                body:not(.light-theme) .belloro-table tbody tr {
+                    background: #2a2a2a !important;
+                    transition: all 0.3s ease;
+                    border-bottom: 1px solid #404040;
+                }
+
+                    body:not(.light-theme) .belloro-table tbody tr:hover {
+                        background: #333333 !important;
+                        transform: translateY(-1px);
+                        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15) !important;
+                    }
+
+                    body:not(.light-theme) .belloro-table tbody tr:nth-child(even) {
+                        background: #252525 !important;
+                    }
+
+                        body:not(.light-theme) .belloro-table tbody tr:nth-child(even):hover {
+                            background: #333333 !important;
+                        }
+
+            /* Dashboard card karanlık mod */
+            body:not(.light-theme) .dashboard-card {
+                background: #2a2a2a !important;
+                border: 1px solid #404040 !important;
+                color: #FFD700 !important;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+            }
+
+                body:not(.light-theme) .dashboard-card .card-header {
+                    background: linear-gradient(135deg, #333333 0%, #2a2a2a 100%) !important;
+                    border-bottom: 2px solid #FFD700 !important;
+                    color: #FFD700 !important;
+                }
+
+                body:not(.light-theme) .dashboard-card .card-title {
+                    color: #FFD700 !important;
+                    font-weight: 700;
+                }
+
+            /* Badge stilleri karanlık mod için */
+            body:not(.light-theme) .badge.bg-success {
+                background: linear-gradient(135deg, #28a745, #20c997) !important;
+                color: #fff !important;
+            }
+
+            body:not(.light-theme) .badge.bg-warning {
+                background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+                color: #1a1a1a !important;
+                font-weight: 600;
+            }
+
+            body:not(.light-theme) .badge.bg-info {
+                background: linear-gradient(135deg, #17a2b8, #20c997) !important;
+                color: #fff !important;
+            }
+
+            body:not(.light-theme) .badge.bg-secondary {
+                background: linear-gradient(135deg, #6c757d, #495057) !important;
+                color: #fff !important;
+            }
+
+            /* Fiyat stilleri karanlık mod için güncelleme */
+            body:not(.light-theme) .fiyat-rakam {
+                color: #FFD700 !important;
+                text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+                font-weight: 700;
+            }
+
+            body:not(.light-theme) .fiyat-tl {
+                color: #FFD700 !important;
+                text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+                font-weight: 700;
+            }
+
+            /* Action button stilleri karanlık mod için */
+            body:not(.light-theme) .btn-action {
+                color: #FFD700 !important;
+                border: 1px solid transparent;
+            }
+
+                body:not(.light-theme) .btn-action.edit:hover,
+                body:not(.light-theme) .btn-action.edit:focus {
+                    background: rgba(255, 215, 0, 0.1) !important;
+                    color: #FFD700 !important;
+                    border-color: #FFD700;
+                }
+
+                body:not(.light-theme) .btn-action.details:hover,
+                body:not(.light-theme) .btn-action.details:focus {
+                    background: rgba(40, 167, 69, 0.1) !important;
+                    color: #28a745 !important;
+                    border-color: #28a745;
+                }
+
+                body:not(.light-theme) .btn-action.delete:hover,
+                body:not(.light-theme) .btn-action.delete:focus {
+                    background: rgba(220, 53, 69, 0.1) !important;
+                    color: #dc3545 !important;
+                    border-color: #dc3545;
+                }
+
+            /* Top products karanlık mod */
+            body:not(.light-theme) .top-product-item {
+                background: #2a2a2a !important;
+                border: 1px solid #404040 !important;
+                color: #FFD700 !important;
+            }
+
+                body:not(.light-theme) .top-product-item:hover {
+                    background: #333333 !important;
+                    border-color: #FFD700;
+                    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.15) !important;
+                }
+
+            body:not(.light-theme) .top-product-title {
+                color: #FFD700 !important;
+                font-weight: 600;
+            }
+
+            body:not(.light-theme) .top-product-category {
+                color: #ccc !important;
+            }
+
+            body:not(.light-theme) .price {
+                color: #FFD700 !important;
+                text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+                font-weight: 700;
+            }
+
+            body:not(.light-theme) .sales-count {
+                background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+                color: #1a1a1a !important;
+                font-weight: 600;
+            }
+
+            /* Empty state karanlık mod */
+            body:not(.light-theme) .empty-state {
+                color: #666 !important;
+            }
+
+                body:not(.light-theme) .empty-state i {
+                    color: #444 !important;
+                }
+
+            /* No image placeholder karanlık mod */
+            body:not(.light-theme) .no-image {
+                background: #333333 !important;
+                color: #666 !important;
+                border: 1px solid #404040;
+            }
+
+            /* Table responsive karanlık mod */
+            body:not(.light-theme) .table-responsive {
+                border: 1px solid #404040;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            /* Header stilleri karanlık mod */
+            body:not(.light-theme) .header-date,
+            body:not(.light-theme) .header-time,
+            body:not(.light-theme) .header-username,
+            body:not(.light-theme) .header-icon,
+            body:not(.light-theme) .current-time,
+            body:not(.light-theme) .current-user {
+                color: #FFD700 !important;
+                text-shadow: 0 0 3px rgba(255, 215, 0, 0.3);
+            }
+    </style>
+}

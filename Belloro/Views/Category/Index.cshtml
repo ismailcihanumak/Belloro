@@ -1,0 +1,371 @@
+﻿@model IEnumerable<Belloro.Models.Category>
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+
+@{
+    Layout = "~/Views/Shared/_adminlayout.cshtml";
+    ViewData["Title"] = "Kategoriler";
+    var currentSort = ViewData["CurrentSort"] as string ?? "";
+    var nameSortParam = ViewData["NameSortParam"] as string ?? "";
+    var antiForgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var tempSuccess = TempData["Success"] as string;
+    var tempError = TempData["Error"] as string;
+}
+
+<div class="container-fluid p-0">
+    <div class="text-center mb-4">
+        <h1 class="categories-title mb-3">Kategoriler</h1>
+        <a asp-action="Create" class="btn btn-warning btn-add-category mb-3">
+            <i class="bi bi-plus-circle me-2"></i>Yeni Kategori Ekle
+        </a>
+    </div>
+
+    <div>
+        <table class="table belloro-table category-table-fix">
+            <thead>
+                <tr>
+                    <th class="text-center" style="width:32%;">Kategori Adı</th>
+                    <th class="text-center" style="width:36%;">Açıklama</th>
+                    <th class="text-center" style="width:32%;">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var productCount = item.Products?.Count ?? 0;
+                    <tr>
+                        <td class="align-middle text-center category-name">
+                            @item.Name
+                        </td>
+                        <td class="align-middle text-center category-description">
+                            @item.Description
+                        </td>
+                        <td class="align-middle text-center action-buttons">
+                            <a asp-action="Edit" asp-route-id="@item.CategoryId" class="btn btn-warning btn-sm" title="Düzenle">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
+                            <a asp-action="Details" asp-route-id="@item.CategoryId" class="btn btn-dark btn-sm" title="Detay">
+                                <i class="bi bi-eye"></i> Detay
+                            </a>
+                            <form id="deleteForm-@item.CategoryId" method="post" asp-action="Delete" asp-route-id="@item.CategoryId" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        title="Sil"
+                                        onclick="confirmDelete(@item.CategoryId, '@item.Name.Replace("'", "\\'")', @productCount)">
+                                    <i class="bi bi-trash"></i> Sil
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.all.min.js"></script>
+    <script>
+        function decodeHTMLEntities(text) {
+            var txt = document.createElement('textarea');
+            txt.innerHTML = text;
+            return txt.value;
+        }
+
+        function confirmDelete(categoryId, categoryName, productCount) {
+            if (productCount > 0) {
+                Swal.fire({
+                    title: 'Silme İşlemi Yapılamaz!',
+                    html: `<strong>"${categoryName}"</strong> kategorisi silinemez.<br><br>Bu kategoriye ait <strong>${productCount} ürün</strong> bulunuyor.<br><br>Lütfen önce bu ürünleri başka bir kategoriye taşıyın veya silin.`,
+                    icon: 'error',
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#6c757d'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'Emin misiniz?',
+                html: `<strong>"${categoryName}"</strong> kategorisi <strong>kalıcı olarak</strong> silinecek.<br><br>Bu işlem geri alınamaz!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-2"></i>Evet, Sil!',
+                cancelButtonText: '<i class="bi bi-x-lg me-2"></i>İptal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteForm-' + categoryId).submit();
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var tempSuccess = "@Html.Raw(tempSuccess)";
+            var tempError = "@Html.Raw(tempError)";
+            if (tempSuccess && tempSuccess.length > 0) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    html: decodeHTMLEntities(tempSuccess),
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK',
+                    customClass: { title: 'swal2-title-custom' }
+                });
+            }
+            if (tempError && tempError.length > 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    html: decodeHTMLEntities(tempError),
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#d33'
+                });
+            }
+        });
+    </script>
+    <style>
+        .swal2-title-custom {
+            font-size: 2rem !important;
+        }
+    </style>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        .categories-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-theme .categories-title {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .categories-title {
+            color: #ffc107;
+        }
+
+        /* Yeni Kategori Ekle butonu */
+        .btn-add-category {
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            transition: all 0.3s ease;
+        }
+
+            .btn-add-category:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+            }
+
+        /* Sıralama linklerinin stilleri */
+        .sort-link {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .sort-link:hover {
+                color: #ffc107;
+                text-decoration: none;
+            }
+
+        body:not(.light-theme) .sort-link {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) .sort-link:hover {
+                color: #ffffff;
+            }
+
+        /* Belloro özel tablo stilleri */
+        .belloro-table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Yazı renkleri - tema değişikliğinde doğru çalışmasını sağlama */
+        body.light-theme .belloro-table {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .belloro-table {
+            color: #ffffff;
+        }
+
+        /* Tablo başlık stilleri */
+        .belloro-table thead th {
+            vertical-align: bottom;
+            font-weight: 600;
+            text-align: center;
+            padding: 15px 12px;
+            position: relative;
+        }
+
+        /* Başlık arka plan ve renkleri */
+        body.light-theme .belloro-table thead th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #212529;
+            border-bottom: 3px solid #ffc107;
+        }
+
+        body:not(.light-theme) .belloro-table thead th {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #ffc107;
+            border-bottom: 3px solid #ffc107;
+        }
+
+        /* Tablo satır stilleri */
+        .belloro-table tbody td {
+            padding: 15px 12px;
+            transition: all 0.3s ease;
+        }
+
+        /* Hücre çizgileri */
+        body.light-theme .belloro-table tbody td {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        body:not(.light-theme) .belloro-table tbody td {
+            border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+        }
+
+        /* Satır arka plan renkleri ve hover efekti */
+        body.light-theme .belloro-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+            body.light-theme .belloro-table tbody tr:nth-child(odd) {
+                background-color: rgba(0, 0, 0, 0.02);
+            }
+
+            body.light-theme .belloro-table tbody tr:nth-child(even) {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+            body.light-theme .belloro-table tbody tr:hover {
+                background-color: rgba(255, 193, 7, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+        body:not(.light-theme) .belloro-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+            body:not(.light-theme) .belloro-table tbody tr:nth-child(odd) {
+                background-color: rgba(255, 255, 255, 0.02);
+            }
+
+            body:not(.light-theme) .belloro-table tbody tr:nth-child(even) {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            body:not(.light-theme) .belloro-table tbody tr:hover {
+                background-color: rgba(255, 193, 7, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+            }
+
+        /* Buton stilleri */
+        .action-buttons {
+            white-space: nowrap;
+        }
+
+        .belloro-table .btn {
+            margin: 0 2px;
+            min-width: 90px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .belloro-table .btn::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .belloro-table .btn:hover::before {
+                left: 100%;
+            }
+
+        /* Buton renkleri ve efektleri */
+        .btn-dark {
+            background-color: #212529 !important;
+            border-color: #212529 !important;
+            color: white !important;
+        }
+
+            .btn-dark:hover {
+                background-color: #1a1e21 !important;
+                border-color: #191c20 !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(33, 37, 41, 0.3);
+            }
+
+        .btn-warning {
+            background-color: #ffc107 !important;
+            border-color: #ffc107 !important;
+            color: #212529 !important;
+        }
+
+            .btn-warning:hover {
+                background-color: #e0a800 !important;
+                border-color: #d39e00 !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+            }
+
+        .btn-outline-danger {
+            background-color: transparent !important;
+            border-color: #dc3545 !important;
+            color: #dc3545 !important;
+        }
+
+            .btn-outline-danger:hover {
+                background-color: #dc3545 !important;
+                color: white !important;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3);
+            }
+
+        /* SweetAlert2 tema uyumluluğu */
+        body:not(.light-theme) .swal2-popup {
+            background-color: #2c2c2c !important;
+            color: #ffffff !important;
+        }
+
+        body:not(.light-theme) .swal2-title {
+            color: #ffffff !important;
+        }
+
+        body:not(.light-theme) .swal2-content {
+            color: #adb5bd !important;
+        }
+    </style>
+}

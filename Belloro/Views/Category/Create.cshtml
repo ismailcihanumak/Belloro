@@ -1,0 +1,611 @@
+﻿@model Belloro.Models.Category
+
+@{
+    ViewData["Title"] = "Yeni Kategori Ekle";
+    Layout = "~/Views/Shared/_adminlayout.cshtml";
+}
+
+<div class="container-fluid p-0">
+    <!-- Başlık bölümü - ortalanmış -->
+    <div class="text-center mb-4">
+        <h1 class="create-title mb-3">Yeni Kategori Ekle</h1>
+
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb justify-content-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Category")" class="breadcrumb-link">
+                        <i class="bi bi-folder me-1"></i>Kategori Listesi
+                    </a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Yeni Kategori</li>
+            </ol>
+        </nav>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="create-form-container">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="row">
+                        <!-- Sol taraf - Form alanları -->
+                        <div class="col-md-6">
+                            <div class="form-group mb-4">
+                                <label asp-for="Name" class="form-label">
+                                    <i class="bi bi-folder me-2"></i>Kategori Adı
+                                </label>
+                                <input asp-for="Name" class="form-control form-control-modern" placeholder="Kategori adını giriniz..." />
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Örnek: Lüks Saatler, Klasik Saatler, Spor Saatler
+                                </div>
+                                <span asp-validation-for="Name" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Açıklama alanı eklendi -->
+                            <div class="form-group mb-4">
+                                <label asp-for="Description" class="form-label">
+                                    <i class="bi bi-justify-left me-2"></i>Açıklama
+                                </label>
+                                <textarea asp-for="Description" class="form-control form-control-modern" rows="4" placeholder="Kategori hakkında açıklama giriniz..."></textarea>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Kategori hakkında kısa bir açıklama girin (örn: Bu kategoride sadece klasik saatler bulunur)
+                                </div>
+                                <span asp-validation-for="Description" class="text-danger small"></span>
+                            </div>
+
+                            <div class="category-info-section">
+                                <div class="info-card">
+                                    <div class="info-header">
+                                        <i class="bi bi-lightbulb me-2"></i>
+                                        <span>Kategori Hakkında</span>
+                                    </div>
+                                    <div class="info-content">
+                                        <ul class="info-list">
+                                            <li>
+                                                <i class="bi bi-check-circle text-success me-2"></i>
+                                                Kategoriler ürünlerinizi gruplamak için kullanılır
+                                            </li>
+                                            <li>
+                                                <i class="bi bi-check-circle text-success me-2"></i>
+                                                Müşteriler kategorilere göre filtreleme yapabilir
+                                            </li>
+                                            <li>
+                                                <i class="bi bi-check-circle text-success me-2"></i>
+                                                Aynı isimde kategori oluşturulamaz
+                                            </li>
+                                            <li>
+                                                <i class="bi bi-check-circle text-success me-2"></i>
+                                                Kategori silindiğinde ürünler kategorisiz kalır
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sağ taraf - Kategori Önizleme -->
+                        <div class="col-md-6">
+                            <div class="category-preview-section">
+                                <label class="form-label text-center d-block mb-3">
+                                    <i class="bi bi-eye me-2"></i>Kategori Önizlemesi
+                                </label>
+                                <div class="category-preview-container">
+                                    <div class="category-preview-card">
+                                        <div class="category-icon">
+                                            <i class="bi bi-folder2-open"></i>
+                                        </div>
+                                        <div class="category-name" id="categoryNamePreview">
+                                            Kategori Adı
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- İpuçları bölümü -->
+                                <div class="category-tips-section">
+                                    <div class="tips-card">
+                                        <div class="tips-header">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <span>İpuçları</span>
+                                        </div>
+                                        <div class="tips-content">
+                                            <div class="tip-item">
+                                                <i class="bi bi-arrow-right me-2"></i>
+                                                Kısa ve açıklayıcı isimler seçin
+                                            </div>
+                                            <div class="tip-item">
+                                                <i class="bi bi-arrow-right me-2"></i>
+                                                Benzer kategorileri birleştirmeye çalışın
+                                            </div>
+                                            <div class="tip-item">
+                                                <i class="bi bi-arrow-right me-2"></i>
+                                                Müşteri açısından düşünün
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions text-center mt-4 pt-4">
+                        <button type="submit" class="btn btn-warning btn-modern me-3">
+                            <i class="bi bi-check-circle me-2"></i>Kategoriyi Kaydet
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary btn-modern">
+                            <i class="bi bi-arrow-left me-2"></i>Kategori Listesine Dön
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.querySelector('input[name="Name"]');
+            const categoryNamePreview = document.getElementById('categoryNamePreview');
+
+            // Kategori adı değiştiğinde önizlemeyi güncelle
+            nameInput.addEventListener('input', function() {
+                const value = this.value.trim();
+                if (value) {
+                    categoryNamePreview.textContent = value;
+                } else {
+                    categoryNamePreview.textContent = 'Kategori Adı';
+                }
+            });
+
+            // Form validasyon mesajlarını güzelleştir
+            const form = document.querySelector('form');
+            form.addEventListener('submit', function(e) {
+                const nameValue = nameInput.value.trim();
+                if (!nameValue) {
+                    e.preventDefault();
+                    nameInput.classList.add('is-invalid');
+                    nameInput.focus();
+                } else {
+                    nameInput.classList.remove('is-invalid');
+                }
+            });
+
+            // Input focus/blur efektleri
+            nameInput.addEventListener('focus', function() {
+                this.parentNode.classList.add('focused');
+            });
+
+            nameInput.addEventListener('blur', function() {
+                this.parentNode.classList.remove('focused');
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <style>
+        /* Başlık stilleri */
+        .create-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-theme .create-title {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .create-title {
+            color: #ffc107;
+        }
+
+        /* Breadcrumb stilleri */
+        .breadcrumb {
+            background: none;
+            padding: 0;
+            margin-bottom: 0;
+        }
+
+        .breadcrumb-link {
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        body.light-theme .breadcrumb-link {
+            color: #007bff;
+        }
+
+            body.light-theme .breadcrumb-link:hover {
+                color: #ffc107;
+            }
+
+        body:not(.light-theme) .breadcrumb-link {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) .breadcrumb-link:hover {
+                color: #ffffff;
+            }
+
+        body.light-theme .breadcrumb-item.active {
+            color: #6c757d;
+        }
+
+        body:not(.light-theme) .breadcrumb-item.active {
+            color: #adb5bd;
+        }
+
+        /* Form container */
+        .create-form-container {
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+
+        }
+
+        body.light-theme .create-form-container {
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+        }
+
+        body:not(.light-theme) .create-form-container {
+            background-color: #2c2c2c;
+            border: 1px solid #404040;
+        }
+
+        /* Form etiketleri */
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        body.light-theme .form-label {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .form-label {
+            color: #ffc107;
+        }
+
+        /* Modern form kontrolleri */
+        .form-control-modern {
+            border-radius: 8px;
+            border: 2px solid;
+            padding: 12px 16px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme .form-control-modern {
+            background-color: #ffffff;
+            border-color: #e9ecef;
+            color: #212529;
+        }
+
+            body.light-theme .form-control-modern:focus {
+                border-color: #ffc107;
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            }
+
+        body:not(.light-theme) .form-control-modern {
+            background-color: #1a1a1a;
+            border-color: #404040;
+            color: #ffffff;
+        }
+
+            body:not(.light-theme) .form-control-modern:focus {
+                border-color: #ffc107;
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            }
+
+        /* Form yardım metni */
+        .form-text {
+            font-size: 0.875rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        body.light-theme .form-text {
+            color: #6c757d;
+        }
+
+        body:not(.light-theme) .form-text {
+            color: #adb5bd;
+        }
+
+        /* Kategori bilgi kartı */
+        .category-info-section {
+            margin-top: 20px;
+        }
+
+        .info-card {
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid;
+            min-height: 240px; /* Simetri için sabit yükseklik */
+        }
+
+        body.light-theme .info-card {
+            background-color: #f8f9fa;
+            border-color: #e9ecef;
+        }
+
+        body:not(.light-theme) .info-card {
+            background-color: #1a1a1a;
+            border-color: #404040;
+        }
+
+        .info-header {
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 1.1rem;
+        }
+
+        body.light-theme .info-header {
+            color: #495057;
+        }
+
+        body:not(.light-theme) .info-header {
+            color: #ffc107;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+            .info-list li {
+                padding: 8px 0;
+                display: flex;
+                align-items: center;
+                font-size: 0.95rem;
+            }
+
+        body.light-theme .info-list li {
+            color: #6c757d;
+        }
+
+        body:not(.light-theme) .info-list li {
+            color: #adb5bd;
+        }
+
+        /* Kategori önizleme */
+        .category-preview-section {
+            position: sticky;
+            top: 10px;
+        }
+
+        .category-preview-container {
+            border: 2px dashed;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            min-height: 120px; /* Kompakt önizleme */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.light-theme .category-preview-container {
+            border-color: #e9ecef;
+            background-color: #f8f9fa;
+        }
+
+        body:not(.light-theme) .category-preview-container {
+            border-color: #404040;
+            background-color: #1a1a1a;
+        }
+
+        .category-preview-card {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        body.light-theme .category-preview-card {
+            background-color: #ffffff;
+            border-color: #dee2e6;
+        }
+
+        body:not(.light-theme) .category-preview-card {
+            background-color: #2c2c2c;
+            border-color: #495057;
+        }
+
+        .category-icon {
+            font-size: 2.5rem; /* Daha küçük ikon */
+            margin-bottom: 10px;
+            color: #ffc107;
+        }
+
+        .category-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0; /* Alt boşluğu kaldır */
+        }
+
+        body.light-theme .category-name {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .category-name {
+            color: #ffffff;
+        }
+
+        /* İpuçları bölümü */
+        .category-tips-section {
+            margin-top: 0; /* Üst boşluğu kaldır */
+        }
+
+        .tips-card {
+            border-radius: 8px;
+            padding: 23px;
+            border: 1px solid;
+            min-height: 120px; /* İnfo kartı ile aynı yükseklik */
+        }
+
+        body.light-theme .tips-card {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+        }
+
+        body:not(.light-theme) .tips-card {
+            background-color: #2c2416;
+            border-color: #4d3f1a;
+        }
+
+        .tips-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            font-size: 0.95rem;
+        }
+
+        body.light-theme .tips-header {
+            color: #856404;
+        }
+
+        body:not(.light-theme) .tips-header {
+            color: #ffc107;
+        }
+
+        .tip-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        body.light-theme .tip-item {
+            color: #856404;
+        }
+
+        body:not(.light-theme) .tip-item {
+            color: #d4ac0d;
+        }
+
+        /* Modern butonlar */
+        .btn-modern {
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .btn-modern::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn-modern:hover::before {
+                left: 100%;
+            }
+
+        .btn-warning.btn-modern {
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+        }
+
+            .btn-warning.btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+            }
+
+        .btn-secondary.btn-modern {
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+            .btn-secondary.btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+            }
+
+        /* Form actions */
+        .form-actions {
+            border-top: 2px solid;
+        }
+
+        body.light-theme .form-actions {
+            border-color: #e9ecef;
+        }
+
+        body:not(.light-theme) .form-actions {
+            border-color: #404040;
+        }
+
+        /* Focus efektleri */
+        .form-group.focused .form-label {
+            color: #ffc107;
+        }
+
+        /* Responsive tasarım */
+        @@media (max-width: 768px) {
+            .create-title
+
+        {
+            font-size: 2rem;
+        }
+
+        .create-form-container {
+            padding: 20px;
+        }
+
+        .btn-modern {
+            padding: 10px 20px;
+            font-size: 1rem;
+        }
+
+        .category-icon {
+            font-size: 2rem;
+        }
+
+        .info-card, .tips-card {
+            min-height: auto;
+        }
+
+        }
+    </style>
+}

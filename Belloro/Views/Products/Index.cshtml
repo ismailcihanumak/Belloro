@@ -1,0 +1,1294 @@
+﻿@model IEnumerable<Belloro.Models.Product>
+@using Microsoft.AspNetCore.Antiforgery
+@inject IAntiforgery Antiforgery
+
+@{
+    Layout = "~/Views/Shared/_adminlayout.cshtml";
+    ViewData["Title"] = "Ürünler";
+
+    var currentSort = ViewData["CurrentSort"] as string ?? "";
+    var nameSortParam = ViewData["NameSortParam"] as string ?? "";
+    var priceSortParam = ViewData["PriceSortParam"] as string ?? "";
+    var categories = ViewBag.Categories as List<Belloro.Models.Category> ?? new List<Belloro.Models.Category>();
+
+    var tempSuccess = TempData["Success"] as string;
+    var tempError = TempData["Error"] as string;
+    var tempSuccessMsg = TempData["SuccessMessage"] as string;
+    var tempErrorMsg = TempData["ErrorMessage"] as string;
+
+    var antiForgeryToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+
+<div class="container-fluid p-0">
+    <div class="text-center mb-4">
+        <h1 class="products-title mb-3">Ürünler</h1>
+        <a asp-action="Create" class="btn btn-warning btn-add-product mb-3">
+            <i class="bi bi-plus-circle me-2"></i>Yeni Ürün Ekle
+        </a>
+        <div class="search-container" style="flex-direction:column;align-items:center;">
+            <div style="display:flex;align-items:center;justify-content:center;">
+                <div class="search-icon-wrapper" id="searchToggle">
+                    <i class="bi bi-search search-icon" id="searchIcon"></i>
+                </div>
+                <div class="search-input-wrapper" id="searchInputWrapper" style="display: none;">
+                    <input type="text" class="form-control search-input" id="productSearch" placeholder="Ürün ara...">
+                    <button class="btn btn-close-search" id="closeSearch">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="reset-filters-outer" id="resetFiltersOuter" style="display:none;">
+                <button class="btn-reset-filters" id="resetFiltersBtn2">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Filtreleri Sıfırla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table belloro-table">
+            <thead>
+                <tr>
+                    <th class="text-center col-image">Resim</th>
+                    <th class="text-center col-name">
+                        <span class="sort-link" data-sort="name" id="sortNameBtn" style="cursor:pointer;">
+                            Ürün Adı
+                            <i class="bi" id="nameSortIcon"></i>
+                        </span>
+                    </th>
+                    <th class="text-center col-description">Açıklama</th>
+                    <th class="text-center col-price">
+                        <span class="sort-link" data-sort="price" id="sortPriceBtn" style="cursor:pointer;">
+                            Fiyat
+                            <i class="bi" id="priceSortIcon"></i>
+                        </span>
+                    </th>
+                    <th class="text-center col-category category-header">
+                        <div class="category-filter-container">
+                            <span class="category-title">Kategori</span>
+                            <div class="category-dropdown">
+                                <i class="bi bi-caret-down-fill category-arrow" id="categoryArrow"></i>
+                            </div>
+                        </div>
+                    </th>
+                    <th class="text-center col-actions">İşlemler</th>
+                </tr>
+            </thead>
+            <tbody id="productsTableBody">
+                @foreach (var item in Model)
+                {
+                    <tr class="product-row" data-name="@item.Name.ToLower()" data-category="@(item.Category?.Name?.ToLower() ?? "")" data-description="@(item.Description?.ToLower() ?? "")">
+                        <td class="align-middle text-center">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="@item.Name" class="product-thumbnail" />
+                            }
+                            else
+                            {
+                                <div class="no-image-placeholder">
+                                    <i class="bi bi-image"></i>
+                                    <span>Resim yok</span>
+                                </div>
+                            }
+                        </td>
+                        <td class="align-middle text-center product-name">
+                            @Html.DisplayFor(modelItem => item.Name)
+                        </td>
+                        <td class="align-middle text-center">
+                            @if (!string.IsNullOrEmpty(item.Description) && item.Description.Length > 50)
+                            {
+                                <span class="description-short">@(item.Description.Substring(0, 50) + "...")</span>
+                                <div class="description-full" style="display: none;">@item.Description</div>
+                                <button class="btn btn-link btn-sm p-0 show-more-btn">Devamını Oku</button>
+                            }
+                            else
+                            {
+                                @Html.DisplayFor(modelItem => item.Description)
+                            }
+                        </td>
+                        <td class="align-middle price-cell">
+                            <div class="fiyat-ortala">
+                                <span class="fiyat-rakam">@string.Format("{0:N0}", item.Price)</span>
+                                <span class="fiyat-tl">₺</span>
+                            </div>
+                        </td>
+                        <td class="align-middle text-center">
+                            @(item.Category?.Name ?? "Kategori yok")
+                        </td>
+                        <td class="align-middle text-center action-buttons">
+                            <a asp-action="SetEditSession" asp-route-id="@item.ProductId" class="btn btn-warning btn-sm" title="Düzenle">
+                                <i class="bi bi-pencil"></i> Düzenle
+                            </a>
+                            <a asp-action="SetDetailsSession" asp-route-id="@item.ProductId" class="btn btn-dark btn-sm" title="Detay">
+                                <i class="bi bi-eye"></i> Detay
+                            </a>
+                            <form id="deleteForm-@item.ProductId" method="post" asp-action="DeleteConfirmed" asp-route-id="@item.ProductId" style="display:inline;">
+                                @Html.AntiForgeryToken()
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        title="Sil"
+                                        onclick="confirmDelete(@item.ProductId, '@item.Name.Replace("'", "\\'")')">
+                                    <i class="bi bi-trash"></i> Sil
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+        <div class="no-results">
+            <i class="bi bi-search" style="font-size: 3rem; opacity: 0.3;"></i>
+            <h4 class="mt-3">Bu kategoride ürün bulunamadı</h4>
+            <p class="text-muted">
+                <span id="noResultsText">Farklı bir kategori seçin veya arama yapın</span>
+                <br>
+                <button class="btn btn-link p-0 mt-2" id="resetFiltersBtn">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Filtreleri Sıfırla
+                </button>
+            </p>
+        </div>
+    </div>
+
+    <div class="category-dropdown-menu-fixed" id="categoryDropdown">
+        <div class="dropdown-content">
+            <button class="dropdown-close-btn" id="dropdownCloseBtn" title="Menüyü Kapat">
+                <i class="bi bi-x"></i>
+            </button>
+            <div class="dropdown-header">
+                <i class="bi bi-funnel me-2"></i>Kategoriye Göre Filtrele
+            </div>
+            <div class="dropdown-body">
+                <div class="category-item selected" data-category="">
+                    <i class="bi bi-list-ul me-2"></i>Tüm Kategoriler
+                </div>
+                @if (categories != null && categories.Any())
+                {
+                    @foreach (var category in categories)
+                    {
+                        <div class="category-item" data-category="@category.Name.ToLower()">
+                            <i class="bi bi-folder me-2"></i>@category.Name
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="category-item disabled">
+                        <i class="bi bi-exclamation-circle me-2"></i>Kategori bulunamadı
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.all.min.js"></script>
+    <script>
+        // CSRF token'ı JS'e aktar
+        const antiForgeryToken = "@antiForgeryToken";
+
+        function decodeHTMLEntities(text) {
+            var txt = document.createElement('textarea');
+            txt.innerHTML = text;
+            return txt.value;
+        }
+
+        function confirmDelete(productId, productName) {
+            Swal.fire({
+                title: 'Emin misiniz?',
+                html: `<strong>"${productName}"</strong> ürünü <strong>kalıcı olarak</strong> silinecek.<br><br>Bu işlem geri alınamaz!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="bi bi-trash me-2"></i>Evet, Sil!',
+                cancelButtonText: '<i class="bi bi-x-lg me-2"></i>İptal',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('deleteForm-' + productId).submit();
+                }
+            });
+        }
+
+        // SweetAlert2 tam modal başarı/hata mesajı
+        document.addEventListener('DOMContentLoaded', function () {
+            var tempSuccess = "@Html.Raw(tempSuccess ?? "")";
+            var tempError = "@Html.Raw(tempError ?? "")";
+            var tempSuccessMsg = "@Html.Raw(tempSuccessMsg ?? "")";
+            var tempErrorMsg = "@Html.Raw(tempErrorMsg ?? "")";
+
+            if (tempSuccess && tempSuccess.length > 0) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    html: decodeHTMLEntities(tempSuccess),
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK'
+                });
+            }
+            if (tempError && tempError.length > 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    html: decodeHTMLEntities(tempError),
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#d33'
+                });
+            }
+            if (tempSuccessMsg && tempSuccessMsg.length > 0) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Başarılı!',
+                    html: decodeHTMLEntities(tempSuccessMsg),
+                    confirmButtonColor: '#28a745',
+                    confirmButtonText: 'OK'
+                });
+            }
+            if (tempErrorMsg && tempErrorMsg.length > 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Hata!',
+                    html: decodeHTMLEntities(tempErrorMsg),
+                    confirmButtonText: 'Tamam',
+                    confirmButtonColor: '#d33'
+                });
+            }
+
+
+            // Arama işlevselliği ve filtreler (senin mevcut kodların aynen bırakıldı)
+            const searchToggle = document.getElementById('searchToggle');
+            const searchInputWrapper = document.getElementById('searchInputWrapper');
+            const searchIcon = document.getElementById('searchIcon');
+            const closeSearch = document.getElementById('closeSearch');
+            const productSearch = document.getElementById('productSearch');
+            const categoryArrow = document.getElementById('categoryArrow');
+            const categoryDropdown = document.getElementById('categoryDropdown');
+            const dropdownCloseBtn = document.getElementById('dropdownCloseBtn');
+            const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+            const resetFiltersBtn2 = document.getElementById('resetFiltersBtn2');
+            const resetFiltersOuter = document.getElementById('resetFiltersOuter');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            const productsTableBody = document.getElementById('productsTableBody');
+            const productRows = document.querySelectorAll('.product-row');
+            const categoryItems = document.querySelectorAll('.category-item:not(.disabled)');
+
+            let currentSortField = null;
+            let currentSortDir = 'asc';
+
+            function sortProducts(field) {
+                const rowsArray = Array.from(productRows).filter(row => row.style.display !== 'none');
+                rowsArray.sort((a, b) => {
+                    let aValue, bValue;
+                    if (field === 'name') {
+                        aValue = a.querySelector('.product-name').textContent.trim().toLowerCase();
+                        bValue = b.querySelector('.product-name').textContent.trim().toLowerCase();
+                    } else if (field === 'price') {
+                        aValue = parseFloat(
+                            a.querySelector('.price-cell').textContent.replace(/[^\d,]/g, '').replace(',', '.')
+                        ) || 0;
+                        bValue = parseFloat(
+                            b.querySelector('.price-cell').textContent.replace(/[^\d,]/g, '').replace(',', '.')
+                        ) || 0;
+                    } else {
+                        aValue = '';
+                        bValue = '';
+                    }
+                    if (aValue < bValue) return currentSortDir === 'asc' ? -1 : 1;
+                    if (aValue > bValue) return currentSortDir === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                for (let row of rowsArray) {
+                    productsTableBody.appendChild(row);
+                }
+            }
+
+            document.getElementById('sortNameBtn').addEventListener('click', function() {
+                if (currentSortField === 'name') {
+                    currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortField = 'name';
+                    currentSortDir = 'asc';
+                }
+                updateSortIcons();
+                sortProducts('name');
+            });
+            document.getElementById('sortPriceBtn').addEventListener('click', function() {
+                if (currentSortField === 'price') {
+                    currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortField = 'price';
+                    currentSortDir = 'asc';
+                }
+                updateSortIcons();
+                sortProducts('price');
+            });
+
+            function updateSortIcons() {
+                const nameIcon = document.getElementById('nameSortIcon');
+                const priceIcon = document.getElementById('priceSortIcon');
+                nameIcon.className = '';
+                priceIcon.className = '';
+                if (currentSortField === 'name') {
+                    nameIcon.className = currentSortDir === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+                }
+                if (currentSortField === 'price') {
+                    priceIcon.className = currentSortDir === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
+                }
+            }
+
+            searchToggle.addEventListener('click', function() {
+                searchInputWrapper.style.display = 'flex';
+                setTimeout(() => {
+                    searchInputWrapper.classList.add('slide-in-active');
+                    productSearch.focus();
+                }, 10);
+                searchIcon.style.display = 'none';
+            });
+
+            closeSearch.addEventListener('click', function() {
+                searchInputWrapper.classList.remove('slide-in-active');
+                setTimeout(() => {
+                    searchInputWrapper.style.display = 'none';
+                    searchIcon.style.display = 'block';
+                    productSearch.value = '';
+                    filterProducts();
+                }, 300);
+            });
+
+            categoryArrow.addEventListener('click', function() {
+                categoryDropdown.style.display = 'flex';
+                setTimeout(() => {
+                    categoryDropdown.classList.add('show');
+                    document.querySelector('.dropdown-content').style.transform = 'scale(1)';
+                    document.querySelector('.dropdown-content').style.opacity = '1';
+                }, 10);
+            });
+
+            dropdownCloseBtn.addEventListener('click', function() {
+                document.querySelector('.dropdown-content').style.transform = 'scale(0.8)';
+                document.querySelector('.dropdown-content').style.opacity = '0';
+                setTimeout(() => {
+                    categoryDropdown.classList.remove('show');
+                    categoryDropdown.style.display = 'none';
+                }, 300);
+            });
+
+            categoryItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    categoryItems.forEach(i => i.classList.remove('selected'));
+                    this.classList.add('selected');
+                    filterProducts();
+                    dropdownCloseBtn.click();
+                });
+            });
+
+            resetFiltersBtn2.addEventListener('click', function() {
+                productSearch.value = '';
+                categoryItems.forEach(i => i.classList.remove('selected'));
+                document.querySelector('.category-item[data-category=""]').classList.add('selected');
+                filterProducts();
+            });
+
+            resetFiltersBtn.addEventListener('click', function() {
+                productSearch.value = '';
+                categoryItems.forEach(i => i.classList.remove('selected'));
+                document.querySelector('.category-item[data-category=""]').classList.add('selected');
+                filterProducts();
+            });
+
+            function filterProducts() {
+                const searchTerm = productSearch.value.toLowerCase();
+                const selectedCategory = document.querySelector('.category-item.selected').dataset.category;
+                let hasVisibleRows = false;
+
+                productRows.forEach(row => {
+                    const name = row.dataset.name;
+                    const category = row.dataset.category;
+                    const description = row.dataset.description;
+
+                    const matchesSearch = searchTerm === '' ||
+                                         name.includes(searchTerm) ||
+                                         description.includes(searchTerm);
+
+                    const matchesCategory = selectedCategory === '' ||
+                                          category.includes(selectedCategory);
+
+                    if (matchesSearch && matchesCategory) {
+                        row.style.display = '';
+                        hasVisibleRows = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if (searchTerm !== '' || selectedCategory !== '') {
+                    resetFiltersOuter.style.display = 'flex';
+                } else {
+                    resetFiltersOuter.style.display = 'none';
+                }
+
+                if (hasVisibleRows) {
+                    noResultsMessage.style.display = 'none';
+                } else {
+                    noResultsMessage.style.display = 'block';
+                    const noResultsText = document.getElementById('noResultsText');
+                    if (searchTerm !== '' && selectedCategory !== '') {
+                        noResultsText.textContent = 'Arama kriterlerinize uygun ürün bulunamadı';
+                    } else if (searchTerm !== '') {
+                        noResultsText.textContent = 'Arama kriterlerinize uygun ürün bulunamadı';
+                    } else if (selectedCategory !== '') {
+                        noResultsText.textContent = 'Bu kategoride ürün bulunamadı';
+                    } else {
+                        noResultsText.textContent = 'Ürün bulunamadı';
+                    }
+                }
+
+                if (currentSortField) {
+                    sortProducts(currentSortField);
+                }
+            }
+
+            productSearch.addEventListener('input', filterProducts);
+
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('show-more-btn')) {
+                    const btn = e.target;
+                    const shortDesc = btn.previousElementSibling.previousElementSibling;
+                    const fullDesc = btn.previousElementSibling;
+
+                    if (fullDesc.style.display === 'none') {
+                        shortDesc.style.display = 'none';
+                        fullDesc.style.display = 'inline';
+                        btn.textContent = 'Daha Az Göster';
+                    } else {
+                        shortDesc.style.display = 'inline';
+                        fullDesc.style.display = 'none';
+                        btn.textContent = 'Devamını Oku';
+                    }
+                }
+            });
+
+            resetFiltersOuter.style.display = 'none';
+        });
+    </script>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.14.0/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        /* Tüm stiller yukarıdaki cevaptaki gibi buraya eklenmiştir. */
+        
+        .products-title {
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        body.light-theme .products-title {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .products-title {
+            color: #ffc107;
+        }
+
+        .btn-add-product {
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+            transition: all 0.3s ease;
+        }
+
+            .btn-add-product:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+            }
+
+        .belloro-table {
+            width: 100%;
+            margin-bottom: 1rem;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            table-layout: fixed;
+        }
+
+        .col-image {
+            width: 100px;
+        }
+
+        .col-name {
+            width: 200px;
+        }
+
+        .col-description {
+            width: 300px;
+        }
+
+        .col-price {
+            width: 120px;
+        }
+
+        .col-category {
+            width: 180px;
+        }
+
+        .col-actions {
+            width: 300px;
+        }
+
+        .category-header {
+            position: relative;
+        }
+
+        .category-filter-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .category-title {
+            font-weight: 600;
+            width: 120px;
+            text-align: center;
+        }
+
+        .category-dropdown {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .category-arrow {
+            cursor: pointer;
+            font-size: 1rem;
+            transition: transform 0.3s ease;
+            padding: 8px;
+            border-radius: 4px;
+            width: 25px;
+            height: 25px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        body.light-theme .category-arrow {
+            color: #212529;
+        }
+
+            body.light-theme .category-arrow:hover {
+                background-color: rgba(255, 193, 7, 0.2);
+                color: #ffc107;
+            }
+
+        body:not(.light-theme) .category-arrow {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) .category-arrow:hover {
+                background-color: rgba(255, 193, 7, 0.2);
+                color: #ffffff;
+            }
+
+        .category-dropdown-menu-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9999999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+            .category-dropdown-menu-fixed.show {
+                display: flex;
+            }
+
+        .dropdown-content {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+            min-width: 600px;
+            max-width: 800px;
+            max-height: 70vh;
+            overflow: hidden;
+            border: 4px solid #ffc107;
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.3s ease-out;
+            position: relative;
+        }
+
+        .category-dropdown-menu-fixed.show .dropdown-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        body:not(.light-theme) .dropdown-content {
+            background: #2c2c2c;
+        }
+
+        .dropdown-close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+            .dropdown-close-btn:hover {
+                background: #dc3545;
+                color: white;
+                transform: scale(1.1);
+                box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+            }
+
+        body:not(.light-theme) .dropdown-close-btn {
+            background: rgba(220, 53, 69, 0.2);
+        }
+
+            body:not(.light-theme) .dropdown-close-btn:hover {
+                background: #dc3545;
+            }
+
+        .dropdown-header {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+            padding: 25px 30px;
+            font-weight: 700;
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+            border-radius: 20px 20px 0 0;
+            margin: 0;
+        }
+
+        .dropdown-body {
+            max-height: calc(70vh - 120px);
+            overflow-y: auto;
+            padding: 15px 0;
+        }
+
+        .category-item {
+            padding: 25px 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            font-size: 1.15rem;
+            margin: 3px 0;
+            border-radius: 0;
+        }
+
+            .category-item.disabled {
+                cursor: not-allowed;
+                opacity: 0.5;
+            }
+
+        body.light-theme .category-item {
+            color: #212529;
+        }
+
+            body.light-theme .category-item:hover:not(.disabled) {
+                background-color: #f8f9fa;
+                color: #ffc107;
+                transform: translateX(20px);
+                border-left: 6px solid #ffc107;
+                padding-left: 46px;
+                border-radius: 0 15px 15px 0;
+            }
+
+            body.light-theme .category-item.selected {
+                background-color: #ffc107;
+                color: #212529;
+                font-weight: 700;
+                border-left: 6px solid #e0a800;
+                padding-left: 46px;
+                border-radius: 0 15px 15px 0;
+            }
+
+        body:not(.light-theme) .category-item {
+            color: #ffffff;
+        }
+
+            body:not(.light-theme) .category-item:hover:not(.disabled) {
+                background-color: #404040;
+                color: #ffc107;
+                transform: translateX(20px);
+                border-left: 6px solid #ffc107;
+                padding-left: 46px;
+                border-radius: 0 15px 15px 0;
+            }
+
+            body:not(.light-theme) .category-item.selected {
+                background-color: #ffc107;
+                color: #212529;
+                font-weight: 700;
+                border-left: 6px solid #e0a800;
+                padding-left: 46px;
+                border-radius: 0 15px 15px 0;
+            }
+
+        .category-item i {
+            margin-right: 18px;
+            width: 26px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+
+        .search-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .search-icon-wrapper {
+            background: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            width: auto !important;
+            height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-icon {
+            font-size: 1.2rem;
+            color: #ffc107;
+            background: none;
+            border: none;
+        }
+
+        body.light-theme .search-icon-wrapper {
+            background-color: #f8f9fa;
+            border-color: #e9ecef;
+        }
+
+        body.light-theme .search-icon {
+            color: #212529;
+        }
+
+        body.light-theme .search-icon-wrapper:hover {
+            background-color: #e9ecef;
+            border-color: #ffc107;
+            transform: scale(1.1);
+        }
+
+        body:not(.light-theme) .search-icon-wrapper {
+            background-color: #2c2c2c;
+            border-color: #404040;
+        }
+
+        body:not(.light-theme) .search-icon {
+            color: #ffffff;
+        }
+
+        body:not(.light-theme) .search-icon-wrapper:hover {
+            background-color: #404040;
+            border-color: #ffc107;
+            transform: scale(1.1);
+        }
+
+        .search-input-wrapper {
+            display: none;
+            align-items: center;
+            position: relative;
+            max-width: 400px;
+            width: 100%;
+            opacity: 0;
+            transform: translateX(-20px);
+            transition: all 0.3s ease-out;
+        }
+
+            .search-input-wrapper.slide-in-active {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+        .search-input {
+            padding: 12px 50px 12px 20px;
+            border-radius: 25px;
+            border: 2px solid;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme .search-input {
+            background-color: #ffffff;
+            border-color: #e9ecef;
+            color: #212529;
+        }
+
+            body.light-theme .search-input:focus {
+                border-color: #ffc107;
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            }
+
+        body:not(.light-theme) .search-input {
+            background-color: #2c2c2c;
+            border-color: #404040;
+            color: #ffffff;
+        }
+
+            body:not(.light-theme) .search-input:focus {
+                border-color: #ffc107;
+                box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+            }
+
+        .btn-close-search {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: none;
+            font-size: 1.2rem;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        body.light-theme .btn-close-search {
+            color: #6c757d;
+        }
+
+            body.light-theme .btn-close-search:hover {
+                background-color: #e9ecef;
+                color: #212529;
+            }
+
+        body:not(.light-theme) .btn-close-search {
+            color: #adb5bd;
+        }
+
+            body:not(.light-theme) .btn-close-search:hover {
+                background-color: #404040;
+                color: #ffffff;
+            }
+
+        .search-highlight {
+            background-color: #ffc107;
+            color: #212529;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .no-results {
+            padding: 40px 20px;
+        }
+
+        body.light-theme .no-results {
+            color: #6c757d;
+        }
+
+        body:not(.light-theme) .no-results {
+            color: #adb5bd;
+        }
+
+        #resetFiltersBtn {
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        body.light-theme #resetFiltersBtn {
+            color: #007bff;
+        }
+
+            body.light-theme #resetFiltersBtn:hover {
+                color: #ffc107;
+                text-decoration: underline;
+            }
+
+        body:not(.light-theme) #resetFiltersBtn {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) #resetFiltersBtn:hover {
+                color: #ffffff;
+                text-decoration: underline;
+            }
+
+        .no-image-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+        }
+
+        body.light-theme .no-image-placeholder {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #e9ecef;
+        }
+
+        body:not(.light-theme) .no-image-placeholder {
+            background-color: #2c2c2c;
+            color: #adb5bd;
+            border: 1px solid #404040;
+        }
+
+        .no-image-placeholder i {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .sort-link {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .sort-link:hover {
+                color: #ffc107;
+                text-decoration: none;
+            }
+
+        body:not(.light-theme) .sort-link {
+            color: #ffc107;
+        }
+
+            body:not(.light-theme) .sort-link:hover {
+                color: #ffffff;
+            }
+
+        .product-thumbnail {
+            max-width: 80px;
+            max-height: 80px;
+            object-fit: contain;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+            .product-thumbnail:hover {
+                transform: scale(1.1);
+            }
+
+        body.light-theme .belloro-table {
+            color: #212529;
+        }
+
+        body:not(.light-theme) .belloro-table {
+            color: #ffffff;
+        }
+
+        .belloro-table thead th {
+            vertical-align: bottom;
+            font-weight: 600;
+            text-align: center;
+            padding: 15px 12px;
+            position: relative;
+        }
+
+        body.light-theme .belloro-table thead th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            color: #212529;
+            border-bottom: 3px solid #ffc107;
+        }
+
+        body:not(.light-theme) .belloro-table thead th {
+            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            color: #ffc107;
+            border-bottom: 3px solid #ffc107;
+        }
+
+        .belloro-table tbody td {
+            padding: 15px 12px;
+            transition: all 0.3s ease;
+        }
+
+        body.light-theme .belloro-table tbody td {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        body:not(.light-theme) .belloro-table tbody td {
+            border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+        }
+
+        body.light-theme .belloro-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+            body.light-theme .belloro-table tbody tr:nth-child(odd) {
+                background-color: rgba(0, 0, 0, 0.02);
+            }
+
+            body.light-theme .belloro-table tbody tr:nth-child(even) {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+            body.light-theme .belloro-table tbody tr:hover {
+                background-color: rgba(255, 193, 7, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+        body:not(.light-theme) .belloro-table tbody tr {
+            transition: all 0.3s ease;
+        }
+
+            body:not(.light-theme) .belloro-table tbody tr:nth-child(odd) {
+                background-color: rgba(255, 255, 255, 0.02);
+            }
+
+            body:not(.light-theme) .belloro-table tbody tr:nth-child(even) {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+
+            body:not(.light-theme) .belloro-table tbody tr:hover {
+                background-color: rgba(255, 193, 7, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+            }
+
+        
+        body.light-theme .price-cell {
+            color: #28a745;
+        }
+
+        body:not(.light-theme) .price-cell {
+            color: #ffc107;
+        }
+
+        .action-buttons {
+            white-space: nowrap;
+        }
+
+        .belloro-table .btn {
+            margin: 0 2px;
+            min-width: 90px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .belloro-table .btn::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .belloro-table .btn:hover::before {
+                left: 100%;
+            }
+
+        .btn-dark {
+            background-color: #212529;
+            border-color: #212529;
+            color: white;
+        }
+
+            .btn-dark:hover {
+                background-color: #1a1e21;
+                border-color: #191c20;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(33, 37, 41, 0.3);
+            }
+
+        .btn-warning {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #212529;
+        }
+
+            .btn-warning:hover {
+                background-color: #e0a800;
+                border-color: #d39e00;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(255, 193, 7, 0.3);
+            }
+
+        .btn-outline-danger {
+            background-color: transparent;
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+            .btn-outline-danger:hover {
+                background-color: #dc3545;
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3);
+            }
+
+        .show-more-btn {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        body.light-theme .show-more-btn {
+            color: #007bff;
+        }
+
+        body:not(.light-theme) .show-more-btn {
+            color: #ffc107;
+        }
+
+        .show-more-btn:hover {
+            text-decoration: underline;
+        }
+
+        body:not(.light-theme) .swal2-popup {
+            background-color: #2c2c2c !important;
+            color: #ffffff !important;
+        }
+
+        body:not(.light-theme) .swal2-title {
+            color: #ffffff !important;
+        }
+
+        body:not(.light-theme) .swal2-content {
+            color: #adb5bd !important;
+        }
+
+        /* Yeni: reset-filters-outer ve btn-reset-filters */
+        .reset-filters-outer {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 40px;
+            overflow: hidden;
+            opacity: 1;
+            transition: opacity 0.25s, transform 0.25s;
+            transform: translateY(0);
+            width: 100%;
+        }
+
+        .btn-reset-filters {
+            background: linear-gradient(90deg, #ffc107 0%, #ffe082 100%);
+            color: #212529;
+            border: none;
+            border-radius: 25px;
+            padding: 9px 28px;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 2px 10px rgba(255, 193, 7, 0.15);
+            transition: background 0.2s, color 0.2s, transform 0.25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            outline: none;
+            cursor: pointer;
+            opacity: 1;
+        }
+
+            .btn-reset-filters:hover, .btn-reset-filters:focus {
+                background: linear-gradient(90deg, #ffdf7e 0%, #ffc107 100%);
+                color: #111;
+                transform: translateY(-2px) scale(1.05);
+                box-shadow: 0 3px 18px rgba(255,193,7,0.21);
+            }
+
+            .btn-reset-filters:active {
+                transform: scale(0.98);
+                background: #ffc107;
+            }
+        .price-cell {
+    padding: 0 !important;
+    vertical-align: middle !important;
+}
+
+.fiyat-ortala {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+        .fiyat-rakam {
+            font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+            font-weight: 600;
+            font-size: 1.06rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            margin-top: 4px;
+            color: #212529; /* Açık tema için siyah */
+            transition: color 0.2s;
+        }
+
+        body:not(.light-theme) .fiyat-rakam {
+            color: #FFD700 !important; /* Koyu tema için altın sarısı */
+            text-shadow: 0 0 4px #222;
+        }
+
+.fiyat-tl {
+    font-family: 'Montserrat', 'Inter', Arial, sans-serif;
+    font-weight: 700;
+    font-size: 1.04rem;
+    color: #ffc107; /* Açık tema için sarı */
+    margin-top: 0;
+    line-height: 1;
+    letter-spacing: 0.09em;
+    transition: color 0.2s;
+}
+
+body:not(.light-theme) .fiyat-tl {
+    color: #FFD700 !important; /* Koyu tema için altın sarısı */
+    text-shadow: 0 0 4px #222; /* Altın sarısı için hafif parlama efekti */
+}
+
+.belloro-table .col-price {
+    text-align: center;
+}
+        
+    </style>
+}
